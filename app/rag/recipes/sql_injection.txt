@@ -1,0 +1,42 @@
+SQL Injection (CWE-89) - Security Guidelines
+
+**Description:**
+SQL Injection occurs when untrusted data is inserted directly into SQL queries without proper sanitization or parameterization. Attackers can manipulate SQL queries to access, modify, or delete data.
+
+**Secure Remediation:**
+
+1. **Use Parameterized Queries (Prepared Statements)**
+   - Always use parameterized queries with placeholders
+   - Example (Python): `cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))`
+   - Example (Java): `PreparedStatement stmt = conn.prepareStatement("SELECT * FROM users WHERE id = ?"); stmt.setInt(1, userId);`
+
+2. **Use ORM Frameworks**
+   - Utilize ORM libraries that automatically handle parameterization
+   - Examples: SQLAlchemy (Python), Hibernate (Java), Entity Framework (.NET)
+
+3. **Input Validation**
+   - Validate input types and formats
+   - Whitelist allowed characters
+   - Reject suspicious patterns
+
+4. **Avoid String Concatenation**
+   - Never concatenate user input directly into SQL queries
+   - Do not use string formatting for SQL construction
+
+**Example Fix:**
+
+Vulnerable:
+```python
+query = "SELECT * FROM users WHERE username = '" + username + "'"
+cursor.execute(query)
+```
+
+Secure:
+```python
+query = "SELECT * FROM users WHERE username = %s"
+cursor.execute(query, (username,))
+```
+
+**References:**
+- OWASP SQL Injection Prevention Cheat Sheet
+- CWE-89: Improper Neutralization of Special Elements used in an SQL Command

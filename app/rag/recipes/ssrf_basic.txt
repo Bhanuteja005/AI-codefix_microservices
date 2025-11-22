@@ -1,0 +1,67 @@
+Server-Side Request Forgery (CWE-918) - Security Guidelines
+
+**Description:**
+Server-Side Request Forgery (SSRF) occurs when an attacker can make the server perform HTTP requests to arbitrary destinations. This can expose internal services, bypass firewalls, or leak sensitive data.
+
+**Secure Remediation:**
+
+1. **URL Validation and Whitelisting**
+   - Validate URL format and components
+   - Maintain a whitelist of allowed domains
+   - Block private IP ranges and localhost
+   - Example: `127.0.0.1`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
+
+2. **Disable Unnecessary URL Schemes**
+   - Only allow `http://` and `https://`
+   - Block `file://`, `gopher://`, `dict://`, etc.
+
+3. **Use DNS Resolution Validation**
+   - Resolve domain before making request
+   - Reject internal/private IPs after resolution
+
+4. **Network Segmentation**
+   - Isolate application from internal services
+   - Use firewalls to restrict outbound connections
+
+**Example Fix:**
+
+Vulnerable (Python):
+```python
+import requests
+url = request.args.get('url')
+response = requests.get(url)
+return response.content
+```
+
+Secure (Python):
+```python
+import requests
+from urllib.parse import urlparse
+import ipaddress
+
+def is_safe_url(url):
+    parsed = urlparse(url)
+    
+    # Only allow http/https
+    if parsed.scheme not in ['http', 'https']:
+        return False
+    
+    # Whitelist allowed domains
+    allowed_domains = ['api.example.com', 'trusted-service.com']
+    if parsed.netloc not in allowed_domains:
+        return False
+    
+    return True
+
+url = request.args.get('url')
+if not is_safe_url(url):
+    return "Invalid URL", 400
+
+response = requests.get(url, timeout=5)
+return response.content
+```
+
+**References:**
+- OWASP: Server-Side Request Forgery Prevention
+- CWE-918: Server-Side Request Forgery (SSRF)
+- PortSwigger: SSRF Attacks

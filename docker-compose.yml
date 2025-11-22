@@ -1,0 +1,19 @@
+# Docker Compose configuration for AI Code Remediation Microservice
+version: '3.8'
+
+services:
+  codefix-api:
+    build: .
+    container_name: ai-codefix-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - model-cache:/app/.cache
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TRANSFORMERS_CACHE=/app/.cache
+    restart: unless-stopped
+
+volumes:
+  model-cache:

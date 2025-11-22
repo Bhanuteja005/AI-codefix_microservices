@@ -1,0 +1,103 @@
+JWT Validation Issues (CWE-347, CWE-352) - Security Guidelines
+
+**Description:**
+JWT (JSON Web Token) validation issues occur when applications improperly verify JWT signatures, algorithms, or claims. This can allow attackers to forge tokens, escalate privileges, or bypass authentication.
+
+**Common Vulnerabilities:**
+- Not verifying JWT signature
+- Accepting "none" algorithm
+- Not validating token expiration
+- Not checking issuer/audience claims
+- Using weak signing keys
+
+**Secure Remediation:**
+
+1. **Always Verify Signature**
+   - Use a robust JWT library
+   - Never accept unsigned tokens
+   - Verify with the correct public key or secret
+
+2. **Restrict Algorithms**
+   - Explicitly specify allowed algorithms
+   - Never allow "none" algorithm
+   - Prefer asymmetric algorithms (RS256) over symmetric (HS256)
+
+3. **Validate Claims**
+   - Check `exp` (expiration time)
+   - Verify `iss` (issuer)
+   - Validate `aud` (audience)
+   - Check `nbf` (not before) if present
+
+4. **Use Strong Keys**
+   - Use cryptographically strong secrets (256+ bits)
+   - Rotate keys periodically
+   - Store keys securely
+
+**Example Fix:**
+
+Vulnerable (Python):
+```python
+import jwt
+
+token = request.headers.get('Authorization')
+payload = jwt.decode(token, verify=False)  # NO VERIFICATION!
+user_id = payload['user_id']
+```
+
+Secure (Python):
+```python
+import jwt
+from jwt.exceptions import InvalidTokenError
+
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+ALGORITHM = 'HS256'
+
+token = request.headers.get('Authorization')
+if not token:
+    return "Missing token", 401
+
+try:
+    payload = jwt.decode(
+        token,
+        SECRET_KEY,
+        algorithms=[ALGORITHM],  # Explicitly specify algorithm
+        options={
+            'verify_signature': True,
+            'verify_exp': True,
+            'verify_iat': True,
+            'require': ['exp', 'iat', 'user_id']
+        }
+    )
+    user_id = payload['user_id']
+except InvalidTokenError as e:
+    return f"Invalid token: {str(e)}", 401
+```
+
+Vulnerable (Node.js):
+```javascript
+const jwt = require('jsonwebtoken');
+const token = req.headers.authorization;
+const payload = jwt.decode(token);  // NO VERIFICATION!
+```
+
+Secure (Node.js):
+```javascript
+const jwt = require('jsonwebtoken');
+const SECRET_KEY = process.env.JWT_SECRET_KEY;
+
+const token = req.headers.authorization;
+try {
+    const payload = jwt.verify(token, SECRET_KEY, {
+        algorithms: ['HS256'],
+        maxAge: '1h'
+    });
+    const userId = payload.user_id;
+} catch (err) {
+    return res.status(401).json({ error: 'Invalid token' });
+}
+```
+
+**References:**
+- OWASP JWT Cheat Sheet
+- RFC 7519: JSON Web Token (JWT)
+- CWE-347: Improper Verification of Cryptographic Signature

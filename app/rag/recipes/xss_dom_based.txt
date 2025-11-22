@@ -1,0 +1,61 @@
+Cross-Site Scripting (CWE-79) - Security Guidelines
+
+**Description:**
+Cross-Site Scripting (XSS) occurs when untrusted data is included in web pages without proper validation or escaping. Attackers can inject malicious scripts that execute in users' browsers.
+
+**Types:**
+- Reflected XSS: Injected script reflected off web server
+- Stored XSS: Injected script permanently stored
+- DOM-based XSS: Client-side script manipulation
+
+**Secure Remediation:**
+
+1. **Output Encoding/Escaping**
+   - HTML encode all untrusted data before rendering
+   - Use framework-provided escaping functions
+   - Example (Python/Flask): Use `{{ variable | e }}` in templates
+   - Example (JavaScript): Use `textContent` instead of `innerHTML`
+
+2. **Content Security Policy (CSP)**
+   - Implement strict CSP headers
+   - Example: `Content-Security-Policy: default-src 'self'; script-src 'self'`
+
+3. **Input Validation**
+   - Validate input types and formats
+   - Use allowlists for acceptable input
+   - Reject HTML/JavaScript in unexpected fields
+
+4. **Use Safe APIs**
+   - Avoid dangerous functions like `eval()`, `innerHTML`
+   - Use `textContent`, `setAttribute()` for DOM manipulation
+
+**Example Fix:**
+
+Vulnerable (JavaScript):
+```javascript
+let userInput = getUserInput();
+document.getElementById('output').innerHTML = userInput;
+```
+
+Secure (JavaScript):
+```javascript
+let userInput = getUserInput();
+document.getElementById('output').textContent = userInput;
+// Or use a sanitization library like DOMPurify
+```
+
+Vulnerable (Python/Flask):
+```python
+return f"<h1>Welcome {username}</h1>"
+```
+
+Secure (Python/Flask):
+```python
+from markupsafe import escape
+return f"<h1>Welcome {escape(username)}</h1>"
+# Or use template auto-escaping
+```
+
+**References:**
+- OWASP XSS Prevention Cheat Sheet
+- CWE-79: Improper Neutralization of Input During Web Page Generation

@@ -1,0 +1,67 @@
+# .gitignore for AI Code Remediation Microservice
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# HuggingFace/Transformers Cache
+.cache/
+models/
+*.bin
+*.safetensors
+
+# Logs
+*.log
+logs/
+metrics_log.csv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Environment Variables
+.env
+.env.local
+
+# Test outputs
+test_results/
+coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,23 @@
+# AI Code Remediation Microservice - Requirements
+# Python 3.10+
+
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# ML and Transformers
+torch>=2.2.0
+transformers>=4.36.2
+accelerate>=0.25.0
+
+# RAG Components
+sentence-transformers>=2.3.1
+faiss-cpu>=1.8.0
+
+# Utilities
+numpy==1.26.3
+requests==2.31.0
+
+# Optional: For better logging and monitoring
+python-multipart==0.0.6

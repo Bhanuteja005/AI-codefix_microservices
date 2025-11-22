@@ -1,0 +1,49 @@
+# Example Test Payloads for Manual Testing
+
+# SQL Injection Test
+test_sql_injection.json:
+{
+  "language": "python",
+  "cwe": "CWE-89",
+  "code": "cursor.execute('SELECT * FROM users WHERE username = \"' + username + '\"')",
+  "use_rag": true
+}
+
+# Hardcoded Secret Test
+test_hardcoded_secret.json:
+{
+  "language": "java",
+  "cwe": "CWE-798",
+  "code": "String apiKey = \"sk-1234567890abcdef\";\nHttpClient.setHeader(\"Authorization\", apiKey);",
+  "use_rag": true
+}
+
+# XSS Test
+test_xss.json:
+{
+  "language": "javascript",
+  "cwe": "CWE-79",
+  "code": "const html = '<div>' + userInput + '</div>';\ndocument.body.innerHTML = html;",
+  "use_rag": true
+}
+
+# SSRF Test
+test_ssrf.json:
+{
+  "language": "python",
+  "cwe": "CWE-918",
+  "code": "import requests\nurl = request.args.get('url')\nresponse = requests.get(url)",
+  "use_rag": true
+}
+
+# JWT Validation Test
+test_jwt.json:
+{
+  "language": "python",
+  "cwe": "CWE-347",
+  "code": "import jwt\ntoken = request.headers.get('Authorization')\npayload = jwt.decode(token, verify=False)",
+  "use_rag": true
+}
+
+# Usage:
+# curl -X POST http://localhost:8000/local_fix -H "Content-Type: application/json" -d @test_sql_injection.json
