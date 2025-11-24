@@ -124,91 +124,97 @@ async def local_fix(request: CodeFixRequest):
     logger.info(f"Received fix request - Language: {request.language}, CWE: {request.cwe}")
     
     # Start timing
-    with Timer() as timer:
-        try:
-            # Get LLM instance
-            llm = get_llm_instance()
-            
-            # Retrieve RAG context if enabled and available
-            rag_context = None
-            if request.use_rag and RAG_AVAILABLE:
-                try:
-                    retriever = get_retriever_instance()
-                    if retriever.is_available():
-                        # Create query from CWE and language
-                        query = f"{request.cwe} {request.language} security vulnerability"
-                        rag_context = retriever.retrieve(query)
-                        logger.info("RAG context retrieved")
-                except Exception as e:
-                    logger.warning(f"RAG retrieval failed: {str(e)}")
-            
-            # Build prompt
-            if rag_context is None:
-                # Fallback to built-in CWE context
-                rag_context = generate_cwe_context(request.cwe)
-            
-            prompt = build_remediation_prompt(
-                language=request.language,
-                cwe=request.cwe,
-                vulnerable_code=request.code,
-                context=rag_context
-            )
-            
-            # Generate fix
-            logger.info("Generating code fix...")
-            raw_output, token_usage = llm.generate_fix(prompt)
-            
-            # Extract fixed code
-            fixed_code = extract_code_from_response(raw_output, request.language)
-            
-            # Handle case where model returns empty or unchanged code
-            if not fixed_code or fixed_code == request.code:
-                logger.warning("Model returned empty or unchanged code, using original")
-                fixed_code = request.code
-                explanation = f"The model could not generate a fix. Please review {request.cwe} guidelines manually."
-            else:
-                # Generate explanation (simplified - could be a separate LLM call)
-                explanation = f"Fixed {request.cwe} vulnerability in {request.language} code. "
-                if "parameter" in fixed_code.lower() or "%s" in fixed_code or "?" in fixed_code:
-                    explanation += "Applied parameterized queries to prevent injection. "
-                if "environ" in fixed_code.lower() or "getenv" in fixed_code.lower():
-                    explanation += "Replaced hardcoded credentials with environment variables. "
-                if "escape" in fixed_code.lower() or "textContent" in fixed_code.lower():
-                    explanation += "Applied proper output escaping to prevent XSS. "
-                if not any(keyword in fixed_code.lower() for keyword in ["parameter", "environ", "escape"]):
-                    explanation += "Applied security best practices according to the CWE guidelines."
-            
-            # Generate diff
-            diff = generate_diff(request.code, fixed_code, request.language)
-            
-            # Prepare response
-            response = CodeFixResponse(
-                fixed_code=fixed_code,
-                diff=diff if diff else "No changes detected",
-                explanation=explanation,
-                model_used=llm.get_model_name(),
-                token_usage=TokenUsage(**token_usage),
-                latency_ms=timer.elapsed_ms
-            )
-            
-            # Log metrics
-            metrics_logger = get_logger_instance()
-            metrics_logger.log_request({
-                'language': request.language,
-                'cwe': request.cwe,
-                'input_tokens': token_usage['input_tokens'],
-                'output_tokens': token_usage['output_tokens'],
-                'latency_ms': timer.elapsed_ms,
-                'model_used': llm.get_model_name(),
-                'rag_enabled': request.use_rag and rag_context is not None
-            })
-            
-            logger.info(f"Request completed successfully in {timer.elapsed_ms}ms")
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error processing request: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+    start_time = Timer()
+    start_time.__enter__()
+    
+    try:
+        # Get LLM instance
+        llm = get_llm_instance()
+        
+        # Retrieve RAG context if enabled and available
+        rag_context = None
+        if request.use_rag and RAG_AVAILABLE:
+            try:
+                retriever = get_retriever_instance()
+                if retriever.is_available():
+                    # Create query from CWE and language
+                    query = f"{request.cwe} {request.language} security vulnerability"
+                    rag_context = retriever.retrieve(query)
+                    logger.info("RAG context retrieved")
+            except Exception as e:
+                logger.warning(f"RAG retrieval failed: {str(e)}")
+        
+        # Build prompt
+        if rag_context is None:
+            # Fallback to built-in CWE context
+            rag_context = generate_cwe_context(request.cwe)
+        
+        prompt = build_remediation_prompt(
+            language=request.language,
+            cwe=request.cwe,
+            vulnerable_code=request.code,
+            context=rag_context
+        )
+        
+        # Generate fix
+        logger.info("Generating code fix...")
+        raw_output, token_usage = llm.generate_fix(prompt)
+        
+        # Extract fixed code
+        fixed_code = extract_code_from_response(raw_output, request.language)
+        
+        # Handle case where model returns empty or unchanged code
+        if not fixed_code or fixed_code == request.code:
+            logger.warning("Model returned empty or unchanged code, using original")
+            fixed_code = request.code
+            explanation = f"The model could not generate a fix. Please review {request.cwe} guidelines manually."
+        else:
+            # Generate explanation (simplified - could be a separate LLM call)
+            explanation = f"Fixed {request.cwe} vulnerability in {request.language} code. "
+            if "parameter" in fixed_code.lower() or "%s" in fixed_code or "?" in fixed_code:
+                explanation += "Applied parameterized queries to prevent injection. "
+            if "environ" in fixed_code.lower() or "getenv" in fixed_code.lower():
+                explanation += "Replaced hardcoded credentials with environment variables. "
+            if "escape" in fixed_code.lower() or "textContent" in fixed_code.lower():
+                explanation += "Applied proper output escaping to prevent XSS. "
+            if not any(keyword in fixed_code.lower() for keyword in ["parameter", "environ", "escape"]):
+                explanation += "Applied security best practices according to the CWE guidelines."
+        
+        # Generate diff
+        diff = generate_diff(request.code, fixed_code, request.language)
+        
+        # Calculate latency before creating response
+        start_time.__exit__(None, None, None)
+        latency_ms = start_time.elapsed_ms
+        
+        # Prepare response
+        response = CodeFixResponse(
+            fixed_code=fixed_code,
+            diff=diff if diff else "No changes detected",
+            explanation=explanation,
+            model_used=llm.get_model_name(),
+            token_usage=TokenUsage(**token_usage),
+            latency_ms=latency_ms
+        )
+        
+        # Log metrics
+        metrics_logger = get_logger_instance()
+        metrics_logger.log_request({
+            'language': request.language,
+            'cwe': request.cwe,
+            'input_tokens': token_usage['input_tokens'],
+            'output_tokens': token_usage['output_tokens'],
+            'latency_ms': latency_ms,
+            'model_used': llm.get_model_name(),
+            'rag_enabled': request.use_rag and rag_context is not None
+        })
+        
+        logger.info(f"Request completed successfully in {latency_ms}ms")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error processing request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/stats")

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class LocalLLM:
     """Manages local LLM loading and inference"""
     
-    def __init__(self, model_name: str = "deepseek-ai/deepseek-coder-1.3b-base"):
+    def __init__(self, model_name: str = "Salesforce/codegen-350M-mono"):
         """
         Initialize the local LLM
         
@@ -59,7 +59,7 @@ class LocalLLM:
             logger.error(f"Failed to load model: {str(e)}")
             raise
     
-    def generate_fix(self, prompt: str, max_new_tokens: int = 512) -> Tuple[str, Dict[str, int]]:
+    def generate_fix(self, prompt: str, max_new_tokens: int = 256) -> Tuple[str, Dict[str, int]]:
         """
         Generate code fix using the local LLM
         
@@ -80,21 +80,20 @@ class LocalLLM:
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-                max_length=2048
+                max_length=1024
             ).to(self.device)
             
             input_token_count = inputs['input_ids'].shape[1]
             
-            # Generate
+            # Generate with greedy decoding for speed
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
                     max_new_tokens=max_new_tokens,
-                    temperature=0.2,
-                    do_sample=True,
-                    top_p=0.95,
+                    do_sample=False,
                     pad_token_id=self.tokenizer.pad_token_id,
-                    eos_token_id=self.tokenizer.eos_token_id
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    num_beams=1
                 )
             
             # Decode output
@@ -131,8 +130,8 @@ def get_llm_instance(model_name: str = None) -> LocalLLM:
     
     if _llm_instance is None:
         if model_name is None:
-            # Default to a small model for faster inference
-            model_name = "deepseek-ai/deepseek-coder-1.3b-base"
+            # Default to a small, fast model for faster inference
+            model_name = "Salesforce/codegen-350M-mono"
         _llm_instance = LocalLLM(model_name)
         _llm_instance.load_model()
     
